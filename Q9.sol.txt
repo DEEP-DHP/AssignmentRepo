@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SimpleLedger {
+    struct Transaction {
+        address from;
+        address to;
+        uint256 amount;
+    }
+
+    Transaction[] private ledger;
+
+    function addTransaction(address _to, uint256 _amount) public {
+        ledger.push(Transaction(msg.sender, _to, _amount));
+    }
+
+    function getTransaction(uint256 index) public view returns (address from, address to, uint256 amount) {
+        Transaction memory transaction = ledger[index];
+        return (transaction.from, transaction.to, transaction.amount);
+    }
+
+    function getLedgerLength() public view returns (uint256) {
+        return ledger.length;
+    }
+}
