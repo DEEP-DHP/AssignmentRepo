@@ -1,1 +1,84 @@
-/
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract VotingSystem {
+    
+    struct Proposal {
+        string name;
+        uint256 voteCount;
+    }
+
+    struct Voter {
+        bool hasVoted;
+        uint256 votedProposalIndex;
+    }
+
+    // Mapping from proposal ID to proposal details
+    mapping(uint256 => Proposal) public proposals;
+    uint256 public proposalCount;
+
+    // Mapping from voter address to the proposal they voted for
+    mapping(address => Voter) public voters;
+
+    // Events
+    event ProposalCreated(uint256 proposalId, string name);
+    event VoteCast(address voter, uint256 proposalId);
+    event WinningProposal(uint256 proposalId, string name, uint256 voteCount);
+
+    // Create a new proposal
+    function createProposal(string calldata _name) external {
+        require(bytes(_name).length > 0, "Proposal name cannot be empty");
+
+        proposalCount++;
+        proposals[proposalCount] = Proposal(_name, 0);
+
+        emit ProposalCreated(proposalCount, _name);
+    }
+
+    // Cast a vote for a specific proposal
+    function vote(uint256 _proposalId) external {
+        require(_proposalId > 0 && _proposalId <= proposalCount, "Invalid proposal ID");
+        require(!voters[msg.sender].hasVoted, "You have already voted");
+
+        // Record that the voter has voted
+        voters[msg.sender] = Voter(true, _proposalId);
+
+        // Increase the vote count of the selected proposal
+        proposals[_proposalId].voteCount += 1;
+
+        emit VoteCast(msg.sender, _proposalId);
+    }
+
+    // View the current results for a specific proposal
+    function getProposal(uint256 _proposalId) external view returns (string memory name, uint256 voteCount) {
+        require(_proposalId > 0 && _proposalId <= proposalCount, "Invalid proposal ID");
+
+        Proposal storage proposal = proposals[_proposalId];
+        return (proposal.name, proposal.voteCount);
+    }
+
+    // Determine the winning proposal based on the highest vote count
+    function getWinningProposal() external view returns (uint256 winningProposalId, string memory winningProposalName, uint256 winningVoteCount) {
+        require(proposalCount > 0, "No proposals available");
+
+        uint256 maxVotes = 0;
+        uint256 winningId = 0;
+
+        // Loop through all proposals to find the one with the highest votes
+        for (uint256 i = 1; i <= proposalCount; i++) {
+            if (proposals[i].voteCount > maxVotes) {
+                maxVotes = proposals[i].voteCount;
+                winningId = i;
+            }
+        }
+
+        Proposal storage winningProposal = proposals[winningId];
+        return (winningId, winningProposal.name, winningProposal.voteCount);
+    }
+
+    // Declare the winner (this can be used after voting has finished)
+    function declareWinner() external {
+        (uint256 winningProposalId, string memory name, uint256 voteCount) = getWinningProposal();
+        emit WinningProposal(winningProposalId, name, voteCount);
+    }
+}
